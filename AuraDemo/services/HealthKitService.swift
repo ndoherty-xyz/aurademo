@@ -9,12 +9,20 @@ import HealthKit
 import CoreLocation
 
 // Type to form runs into
-struct RunSummary {
+struct RunSummary: Hashable {
     let distanceMiles: Double
     let duration: TimeInterval
     let start: Date
     let end: Date
     let workout: HKWorkout
+    
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(workout.uuid)
+    }
+    
+    static func == (lhs: RunSummary, rhs: RunSummary) -> Bool {
+        lhs.workout.uuid == rhs.workout.uuid
+    }
 }
 
 final class HealthKitService {
@@ -66,6 +74,48 @@ final class HealthKitService {
                 ))
             }
 
+            self.store.execute(query)
+        }
+    }
+    
+    
+    // func to get the runs in the past month
+    func runsInPastMonth() async throws -> [RunSummary] {
+        let calendar = Calendar.current
+        let oneMonthAgo = calendar.date(byAdding: .month, value: -1, to: Date())
+        
+        let typePredicate = HKQuery.predicateForWorkouts(with: .running)
+        let datePredicate = HKQuery.predicateForSamples(withStart: oneMonthAgo, end: Date())
+        let predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [typePredicate, datePredicate])
+        
+        let sort = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
+
+        return try await withCheckedThrowingContinuation { cont in
+            let query = HKSampleQuery(
+                sampleType: HKObjectType.workoutType(),
+                predicate: predicate,
+                limit: 50,
+                sortDescriptors: [sort]
+            ) { _, samples, error in
+                
+                if let error {
+                    cont.resume(throwing: error)
+                    return
+                }
+                
+                guard let workouts = samples as? [HKWorkout] else {
+                    cont.resume(returning: [])
+                    return
+                }
+                
+                let summaries = workouts.map { w in
+                    let meters = w.totalDistance?.doubleValue(for: .meter()) ?? 0
+                    return RunSummary(distanceMiles: meters / 1609.34, duration: w.duration, start: w.startDate, end: w.endDate, workout: w)
+                }
+                
+                cont.resume(returning: summaries)
+            }
+            
             self.store.execute(query)
         }
     }

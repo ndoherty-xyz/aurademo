@@ -1,9 +1,9 @@
 # Xcode
 **/xcuserdata/
-**/.xcuserstate
-DerivedData/
+**/*.xcuserstate
+**/DerivedData/
 .DS_Store
-build/
+**/build/
 
 # Swift Package Manager
 .swiftpm/

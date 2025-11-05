@@ -9,8 +9,8 @@ import SwiftUI
 
 @main
 struct AuraDemoApp: App {
-    @StateObject private var state = WorkoutState()
+//    @StateObject private var state = WorkoutState()
     var body: some Scene {
-        WindowGroup { ContentView().environmentObject(state) }
+        WindowGroup { RunListView() }
     }
 }

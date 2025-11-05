@@ -19,22 +19,24 @@ struct ShareComposer: View {
             Color.black
             // Background: image if present, else gradient
             if let img = bgImage {
-                Image(uiImage: img)
-                    .resizable()
-                    .scaledToFill()
-                    .overlay(
-                        // readability gradient
-                        LinearGradient(
-                            stops: [
-                                .init(color: .black.opacity(0.35), location: 0.0),
-                                .init(color: .black.opacity(0.1), location: 0.5),
-                                .init(color: .black.opacity(0.45), location: 1.0)
-                            ],
-                            startPoint: .top, endPoint: .bottom
+                GeometryReader{ geo in
+                    Image(uiImage: img)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(maxWidth: geo.size.width, maxHeight: geo.size.height)
+                        .overlay(
+                            // readability gradient
+                            LinearGradient(
+                                stops: [
+                                    .init(color: .black.opacity(0.35), location: 0.0),
+                                    .init(color: .black.opacity(0.1), location: 0.5),
+                                    .init(color: .black.opacity(0.45), location: 1.0)
+                                ],
+                                startPoint: .top, endPoint: .bottom
+                            )
                         )
-                    )
-                    .frame(maxWidth: UIScreen.main.bounds.width)
-                    .clipped()
+                        .clipped()
+                }
             }
             VStack(spacing: 6) {
                 // Top typography
@@ -49,7 +51,7 @@ struct ShareComposer: View {
                         .frame(alignment: .center)
                     
                 }
-                .frame(maxWidth: .infinity, alignment: .center)
+                .frame(alignment: .center)
                 .padding(.horizontal, 18)
                 .padding(.top, 18)
                 
@@ -58,7 +60,6 @@ struct ShareComposer: View {
                     .padding(.bottom, 12)
             }
         }
-        .frame(maxWidth: UIScreen.main.bounds.width, alignment: .center)
         .clipped()
     }
     
