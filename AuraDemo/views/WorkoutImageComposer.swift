@@ -11,9 +11,22 @@ import PhotosUI
 
 let pad = 8.0
 
+enum AspectRatioOption {
+    case story
+    case square
+    
+    var ratio: CGFloat {
+        switch self {
+        case .story: return 9.0 / 16.0
+        case .square: return 1.0
+        }
+    }
+}
+
 struct WorkoutImageComposer: View {
     @Environment(\.dismiss) var dismiss
     let workout: RunSummary
+    
     
     let hk = HealthKitService()
     
@@ -26,10 +39,10 @@ struct WorkoutImageComposer: View {
     
     @State private var sharePayload: SharePayload?
     
-    private let storyAspect: CGFloat = 9.0 / 16.0
+    @State private var aspectRatio: AspectRatioOption = .story
     private var exportSize: CGSize {
         let width = UIScreen.main.bounds.width - (pad * 2.0)
-        return CGSize(width: width, height: width / storyAspect)
+        return CGSize(width: width, height: width / aspectRatio.ratio)
     }
     
     var body: some View {
@@ -40,6 +53,7 @@ struct WorkoutImageComposer: View {
                           route: route)
             .frame(width: exportSize.width, height: exportSize.height)
             .clipShape(RoundedRectangle(cornerRadius: 16))
+            //            .animation(.easeOut(duration: 0.15), value: aspectRatio)
             
             HStack(alignment: .top){
                 Button {
@@ -50,6 +64,21 @@ struct WorkoutImageComposer: View {
                 .foregroundColor(.white)
                 Spacer()
                 VStack(alignment: .center, spacing: 20) {
+                    Button {
+                        aspectRatio = aspectRatio == .story ? .square : .story
+                        
+                    } label: {
+                        ZStack {
+                            Image(systemName: "square")
+                                .opacity(aspectRatio == .story ? 1 : 0)
+                            Image(systemName: "rectangle.portrait")
+                                .opacity(aspectRatio == .square ? 1 : 0)
+                        }
+                        .font(.title2)
+                        .animation(.easeOut(duration: 0.15), value: aspectRatio)
+                        
+                    }
+                    .foregroundColor(.white)
                     Button { showPhotoPicker = true } label: {
                         Image(systemName: "photo.on.rectangle.angled").font(.title2)
                     }
@@ -69,6 +98,7 @@ struct WorkoutImageComposer: View {
             }
             .padding(16.0)
         }
+        .animation(.easeOut(duration: 0.15), value: aspectRatio)
         .frame(maxWidth: .infinity, maxHeight: .infinity)  // add this
         .padding(pad)
         // Photos picker
