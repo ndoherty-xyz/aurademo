@@ -1,13 +1,13 @@
 //
-//  auraswiftdemoUITests.swift
-//  auraswiftdemoUITests
+//  AuraDemoUITests.swift
+//  AuraDemoUITests
 //
 //  Created by nick on 11/4/25.
 //
 
 import XCTest
 
-final class auraswiftdemoUITests: XCTestCase {
+final class AuraDemoUITests: XCTestCase {
 
     override func setUpWithError() throws {
         // Put setup code here. This method is called before the invocation of each test method in the class.

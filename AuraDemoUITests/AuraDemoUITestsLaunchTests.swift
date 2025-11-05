@@ -1,13 +1,13 @@
 //
-//  auraswiftdemoUITestsLaunchTests.swift
-//  auraswiftdemoUITests
+//  AuraDemoUITestsLaunchTests.swift
+//  AuraDemoUITests
 //
 //  Created by nick on 11/4/25.
 //
 
 import XCTest
 
-final class auraswiftdemoUITestsLaunchTests: XCTestCase {
+final class AuraDemoUITestsLaunchTests: XCTestCase {
 
     override class var runsForEachTargetApplicationUIConfiguration: Bool {
         true
