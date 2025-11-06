@@ -15,55 +15,61 @@ struct RouteBounds {
 
 struct RouteOverlay: View {
     let route: [CLLocationCoordinate2D]
-    let innerPad: CGFloat = 14
-    let lineMin: CGFloat = 3
-
-    var body: some View {
-        GeometryReader { geo in
-            if let bounds = routeBounds {
-                pathForRoute(bounds: bounds, in: geo.size)
-                    .stroke(.white, lineWidth: max(min(geo.size.width, geo.size.height) * 0.012, lineMin))
-            }
-        }
-        .aspectRatio(max(routeAspect, 0.6), contentMode: .fit) // width drives height
-        .frame(maxWidth: .infinity)
+    var maxDimension: CGFloat = 200 // or pass this in based on container size
+    
+    var lineWidth: CGFloat {
+        maxDimension * 0.015
     }
     
-    // func to get lat/long bounds of the route
-    var routeBounds: RouteBounds? {
-            guard route.count > 1 else { return nil }
-            let lats = route.map(\.latitude), lons = route.map(\.longitude)
-            guard let minLat = lats.min(), let maxLat = lats.max(),
-                  let minLon = lons.min(), let maxLon = lons.max(),
-                  maxLat > minLat, maxLon > minLon
-            else { return nil }
-            return RouteBounds(minLat: minLat, maxLat: maxLat, minLon: minLon, maxLon: maxLon)
+    var body: some View {
+        
+        if let bounds = routeBounds {
+            pathForRoute(bounds: bounds, in: routeSize)
+                .stroke(.white, lineWidth: lineWidth)
+                .frame(width: routeSize.width, height: routeSize.height)
         }
-
-    // func to calculate aspect ratio of the route
+        
+    }
+    
+    var routeBounds: RouteBounds? {
+        guard route.count > 1 else { return nil }
+        let lats = route.map(\.latitude), lons = route.map(\.longitude)
+        guard let minLat = lats.min(), let maxLat = lats.max(),
+              let minLon = lons.min(), let maxLon = lons.max(),
+              maxLat > minLat, maxLon > minLon
+        else { return nil }
+        return RouteBounds(minLat: minLat, maxLat: maxLat, minLon: minLon, maxLon: maxLon)
+    }
+    
     var routeAspect: CGFloat {
         guard let b = routeBounds else { return 1 }
         return CGFloat((b.maxLon - b.minLon) / (b.maxLat - b.minLat))
     }
     
-    // func to draw the path for the route
-    func pathForRoute(bounds: RouteBounds, in size: CGSize) -> Path {
-        let contentW = size.width - 2*innerPad
-        let contentH = size.height - 2*innerPad
+    // calculate tight bounding size
+    var routeSize: CGSize {
+        let aspect = routeAspect
         
+        if aspect > 1 {
+            // wider than tall
+            let width = min(maxDimension, maxDimension * aspect)
+            return CGSize(width: width, height: width / aspect)
+        } else {
+            // taller than wide
+            let height = min(maxDimension, maxDimension / aspect)
+            return CGSize(width: height * aspect, height: height)
+        }
+    }
+    
+    func pathForRoute(bounds: RouteBounds, in size: CGSize) -> Path {
         let routeW = CGFloat(bounds.maxLon - bounds.minLon)
         let routeH = CGFloat(bounds.maxLat - bounds.minLat)
-        let scale = min(contentW / routeW, contentH / routeH)
-        
-        let scaledW = routeW * scale
-        let scaledH = routeH * scale
-        let offsetX = (size.width - scaledW) / 2
-        let offsetY = (size.height - scaledH) / 2
+        let scale = min(size.width / routeW, size.height / routeH)
         
         func toPoint(_ c: CLLocationCoordinate2D) -> CGPoint {
             CGPoint(
-                x: CGFloat(c.longitude - bounds.minLon) * scale + offsetX,
-                y: CGFloat(bounds.maxLat - c.latitude) * scale + offsetY
+                x: CGFloat(c.longitude - bounds.minLon) * scale,
+                y: CGFloat(bounds.maxLat - c.latitude) * scale
             )
         }
         

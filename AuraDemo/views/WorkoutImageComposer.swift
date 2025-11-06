@@ -33,6 +33,19 @@ struct WorkoutImageComposer: View {
     @State private var route: [CLLocationCoordinate2D] = []
     @State private var locationName: String?
     
+    // Stickers
+    @State private var stickers: [StickerData] = []
+    @State private var showStickerPicker = false
+    
+    var availableStickers: [StickerContent] {
+        [
+            .route(route),
+            .stat(label: "Distance", value: String(format: "%.1f mi", workout.distanceMiles)),
+            .stat(label: "Time", value: format(duration: workout.duration)),
+            .location(locationName ?? "")
+        ]
+    }
+    
     @State private var showPhotoPicker = false
     @State private var pickedItem: PhotosPickerItem?
     @State private var backgroundImage: UIImage?
@@ -50,7 +63,8 @@ struct WorkoutImageComposer: View {
             ShareComposer(bgImage: backgroundImage,
                           title: titleText,
                           subtitle: subtitleText,
-                          route: route)
+                          route: route,
+                          stickers: $stickers)
             .frame(width: exportSize.width, height: exportSize.height)
             .clipShape(RoundedRectangle(cornerRadius: 16))
             //            .animation(.easeOut(duration: 0.15), value: aspectRatio)
@@ -79,8 +93,15 @@ struct WorkoutImageComposer: View {
                         
                     }
                     .foregroundColor(.white)
+                    
                     Button { showPhotoPicker = true } label: {
                         Image(systemName: "photo.on.rectangle.angled").font(.title2)
+                    }
+                    .foregroundColor(.white)
+                    .disabled(route.isEmpty)
+                    
+                    Button { showStickerPicker = true } label: {
+                        Image(systemName: "plus.square").font(.title2)
                     }
                     .foregroundColor(.white)
                     .disabled(route.isEmpty)
@@ -105,6 +126,22 @@ struct WorkoutImageComposer: View {
         .photosPicker(isPresented: $showPhotoPicker,
                       selection: $pickedItem,
                       matching: .images)
+        .sheet(isPresented: $showStickerPicker) {
+                    StickerPickerView(
+                        availableStickers: availableStickers,
+                        onSelect: { content in
+                            // add to canvas at center
+                            stickers.append(StickerData(
+                                position: CGPoint(x: exportSize.width/2, y: exportSize.height/2),
+                                content: content
+                            ))
+                            showStickerPicker = false
+                        }
+                    )
+                    .presentationDetents([.medium, .large])
+                    .presentationBackgroundInteraction(.disabled)
+                    .presentationBackground(.ultraThinMaterial)
+                }
         .task(id: pickedItem) { await loadPickedImage() } // loads into backgroundImage
         .background(Color.black)           // ← black canvas behind everything
         .preferredColorScheme(.dark)       // nicer status bar/icons
@@ -131,7 +168,7 @@ struct WorkoutImageComposer: View {
     @MainActor
     private func exportAndShare() async {
         guard backgroundImage != nil else { return }
-        let image = ShareComposer(bgImage: backgroundImage, title: titleText, subtitle: subtitleText, route: route).render(size: exportSize)
+        let image = ShareComposer(bgImage: backgroundImage, title: titleText, subtitle: subtitleText, route: route, stickers: $stickers).render(size: exportSize, scale: 2.0)
         sharePayload = SharePayload(items: [tempURL(for: image) as Any])
     }
     
