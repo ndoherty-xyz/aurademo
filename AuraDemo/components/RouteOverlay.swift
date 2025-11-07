@@ -25,7 +25,7 @@ struct RouteOverlay: View {
         
         if let bounds = routeBounds {
             pathForRoute(bounds: bounds, in: routeSize)
-                .stroke(.white, lineWidth: lineWidth)
+                .stroke(lineWidth: lineWidth)
                 .frame(width: routeSize.width, height: routeSize.height)
         }
         

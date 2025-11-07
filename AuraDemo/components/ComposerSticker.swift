@@ -27,6 +27,8 @@ struct StickerData: Identifiable {
     
     var baseRotation: Angle = .zero
     var baseScale: CGFloat = 1.0
+    
+    var stickerColor: Color = Color.white
 }
 
 // render different types:
@@ -41,11 +43,9 @@ func stickerView(for content: StickerContent, containerSize: CGSize) -> some Vie
             Text(label).font(.caption).opacity(0.8)
             Text(value).font(.system(.title, design: .serif)).bold()
         }
-        .foregroundColor(.white)
     case .location(let name):
         Text(name)
             .font(.system(.headline, design: .serif))
-            .foregroundColor(.white)
     case .pace(let pace):
         HStack {
             Image(systemName: "gauge")

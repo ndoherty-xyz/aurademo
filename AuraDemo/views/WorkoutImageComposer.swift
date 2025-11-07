@@ -37,6 +37,8 @@ struct WorkoutImageComposer: View {
     @State private var stickers: [StickerData] = []
     @State private var showStickerPicker = false
     
+    @State private var selectedColor: Color = Color.white
+    
     var availableStickers: [StickerContent] {
         [
             .route(route),
@@ -60,91 +62,24 @@ struct WorkoutImageComposer: View {
     
     var body: some View {
         ZStack(alignment: .topLeading) {
-            ShareComposer(bgImage: backgroundImage,
-                          title: titleText,
-                          subtitle: subtitleText,
-                          route: route,
-                          stickers: $stickers)
-            .frame(width: exportSize.width, height: exportSize.height)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-            //            .animation(.easeOut(duration: 0.15), value: aspectRatio)
-            
-            HStack(alignment: .top){
-                Button {
-                    dismiss()
-                } label: {
-                    Image(systemName: "chevron.left").font(.title2)
-                }
-                .foregroundColor(.white)
-                Spacer()
-                VStack(alignment: .center, spacing: 20) {
-                    Button {
-                        aspectRatio = aspectRatio == .story ? .square : .story
-                        
-                    } label: {
-                        ZStack {
-                            Image(systemName: "square")
-                                .opacity(aspectRatio == .story ? 1 : 0)
-                            Image(systemName: "rectangle.portrait")
-                                .opacity(aspectRatio == .square ? 1 : 0)
-                        }
-                        .font(.title2)
-                        .animation(.easeOut(duration: 0.15), value: aspectRatio)
-                        
-                    }
-                    .foregroundColor(.white)
-                    
-                    Button { showPhotoPicker = true } label: {
-                        Image(systemName: "photo.on.rectangle.angled").font(.title2)
-                    }
-                    .foregroundColor(.white)
-                    .disabled(route.isEmpty)
-                    
-                    Button { showStickerPicker = true } label: {
-                        Image(systemName: "plus.square").font(.title2)
-                    }
-                    .foregroundColor(.white)
-                    .disabled(route.isEmpty)
-                    
-                    Button { Task { await exportAndShare() } }
-                    label: {
-                        Image(systemName: "square.and.arrow.up").font(.title2)
-                    }
-                    .foregroundColor(.white)
-                    .disabled(route.isEmpty || backgroundImage == nil)
-                    .sheet(item: $sharePayload) { payload in
-                        ShareSheet(items: payload.items)
-                    }
-                }
-            }
-            .padding(16.0)
+            composer
+            controlsOverlay
         }
         .animation(.easeOut(duration: 0.15), value: aspectRatio)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)  // add this
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(pad)
-        // Photos picker
         .photosPicker(isPresented: $showPhotoPicker,
                       selection: $pickedItem,
                       matching: .images)
         .sheet(isPresented: $showStickerPicker) {
-                    StickerPickerView(
-                        availableStickers: availableStickers,
-                        onSelect: { content in
-                            // add to canvas at center
-                            stickers.append(StickerData(
-                                position: CGPoint(x: exportSize.width/2, y: exportSize.height/2),
-                                content: content
-                            ))
-                            showStickerPicker = false
-                        }
-                    )
-                    .presentationDetents([.medium, .large])
-                    .presentationBackgroundInteraction(.disabled)
-                    .presentationBackground(.ultraThinMaterial)
-                }
-        .task(id: pickedItem) { await loadPickedImage() } // loads into backgroundImage
-        .background(Color.black)           // ← black canvas behind everything
-        .preferredColorScheme(.dark)       // nicer status bar/icons
+            stickerPickerSheet
+        }
+        .sheet(item: $sharePayload) { payload in
+            ShareSheet(items: payload.items)
+        }
+        .task(id: pickedItem) { await loadPickedImage() }
+        .background(Color.black)
+        .preferredColorScheme(.dark)
         .task {
             do {
                 route = try await hk.route(for: workout.workout)
@@ -155,7 +90,106 @@ struct WorkoutImageComposer: View {
             }
         }
         .navigationBarHidden(true)
-        
+    }
+
+    var composer: some View {
+        ShareComposer(bgImage: backgroundImage,
+                      title: titleText,
+                      subtitle: subtitleText,
+                      route: route,
+                      stickers: $stickers,
+                      selectedColor: $selectedColor)
+        .frame(width: exportSize.width, height: exportSize.height)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+
+    var controlsOverlay: some View {
+        HStack(alignment: .top){
+            backButton
+            Spacer()
+            controlButtons
+        }
+        .padding(16.0)
+    }
+
+    var backButton: some View {
+        Button {
+            dismiss()
+        } label: {
+            Image(systemName: "chevron.left").font(.title2)
+        }
+        .foregroundColor(.white)
+    }
+
+    var controlButtons: some View {
+        VStack(alignment: .center, spacing: 20) {
+            aspectRatioButton
+            photoPickerButton
+            stickerButton
+            shareButton
+            ColorPicker("", selection: $selectedColor)
+                .labelsHidden()
+                .frame(width: 20, height: 20)
+        }
+    }
+
+    var aspectRatioButton: some View {
+        Button {
+            aspectRatio = aspectRatio == .story ? .square : .story
+        } label: {
+            ZStack {
+                Image(systemName: "square")
+                    .opacity(aspectRatio == .story ? 1 : 0)
+                Image(systemName: "rectangle.portrait")
+                    .opacity(aspectRatio == .square ? 1 : 0)
+            }
+            .font(.title2)
+            .animation(.easeOut(duration: 0.15), value: aspectRatio)
+        }
+        .foregroundColor(.white)
+    }
+
+    var photoPickerButton: some View {
+        Button { showPhotoPicker = true } label: {
+            Image(systemName: "photo.on.rectangle.angled").font(.title2)
+        }
+        .foregroundColor(.white)
+        .disabled(route.isEmpty)
+    }
+
+    var stickerButton: some View {
+        Button { showStickerPicker = true } label: {
+            Image(systemName: "plus.square").font(.title2)
+        }
+        .foregroundColor(.white)
+        .disabled(route.isEmpty)
+    }
+
+    var shareButton: some View {
+        Button { Task { await exportAndShare() } }
+        label: {
+            Image(systemName: "square.and.arrow.up").font(.title2)
+        }
+        .foregroundColor(.white)
+        .disabled(route.isEmpty || backgroundImage == nil)
+    }
+
+    var stickerPickerSheet: some View {
+        StickerPickerView(
+            availableStickers: availableStickers,
+            onSelect: { content in
+                stickers.append(StickerData(
+                    position: CGPoint(x: exportSize.width/2, y: exportSize.height/2),
+                    content: content,
+                    stickerColor: selectedColor
+                ))
+                showStickerPicker = false
+            },
+            stickerColor: selectedColor
+        )
+        .presentationDetents([.medium, .large])
+        .presentationBackgroundInteraction(.disabled)
+        .presentationBackground(.ultraThinMaterial)
     }
     
     private var titleText: String {
@@ -168,7 +202,7 @@ struct WorkoutImageComposer: View {
     @MainActor
     private func exportAndShare() async {
         guard backgroundImage != nil else { return }
-        let image = ShareComposer(bgImage: backgroundImage, title: titleText, subtitle: subtitleText, route: route, stickers: $stickers).render(size: exportSize, scale: 2.0)
+        let image = ShareComposer(bgImage: backgroundImage, title: titleText, subtitle: subtitleText, route: route, stickers: $stickers, selectedColor: $selectedColor).render(size: exportSize, scale: 2.0)
         sharePayload = SharePayload(items: [tempURL(for: image) as Any])
     }
     
