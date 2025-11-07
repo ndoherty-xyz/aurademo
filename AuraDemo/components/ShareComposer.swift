@@ -15,6 +15,7 @@ struct ShareComposer: View {
     let route: [CLLocationCoordinate2D]
     @Binding var stickers: [StickerData]  // receive binding
     @Binding var selectedColor: Color
+    @Binding var activeStickerId: UUID?
     
     @State private var activeGuidelines: Set<Guideline> = []
     @State private var deletingStickerId: UUID? = nil
@@ -69,8 +70,12 @@ struct ShareComposer: View {
                         stickers.removeAll { $0.id == sticker.id }
                         deletingStickerId = nil
                     }
+                    .onTapGesture {
+                        activeStickerId = sticker.id
+                    }
                     .gesture(DragGesture()
                         .onChanged { value in
+                            activeStickerId = sticker.id
                             
                             let snapThreshold: CGFloat = 5
                             let padding: CGFloat = 20
@@ -158,6 +163,7 @@ struct ShareComposer: View {
                     )
                     .simultaneousGesture(MagnificationGesture()
                         .onChanged { value in
+                            activeStickerId = sticker.id
                             sticker.scale = sticker.baseScale * value
                         }
                         .onEnded { _ in
@@ -166,6 +172,8 @@ struct ShareComposer: View {
                     )
                     .simultaneousGesture( RotationGesture()
                         .onChanged { value in
+                            activeStickerId = sticker.id
+                            
                             let newRotation = sticker.baseRotation + value
                             let threshold: Double = 10 // degrees
                             var degrees = newRotation.degrees.truncatingRemainder(dividingBy: 360)
@@ -206,11 +214,14 @@ struct ShareComposer: View {
             image
             stickerOverlay
         }
+        .onTapGesture {
+            activeStickerId = nil
+        }
         .clipped()
     }
     
     public func render(size: CGSize, scale: CGFloat = 3.0) -> UIImage {
-        let view = ShareComposer(bgImage: bgImage, title: title, subtitle: subtitle, route: route, stickers: $stickers, selectedColor: $selectedColor)
+        let view = ShareComposer(bgImage: bgImage, title: title, subtitle: subtitle, route: route, stickers: $stickers, selectedColor: $selectedColor, activeStickerId: $activeStickerId)
             .frame(width: size.width, height: size.height)
             .transaction { $0.disablesAnimations = true }
         

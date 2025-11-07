@@ -38,6 +38,7 @@ struct WorkoutImageComposer: View {
     @State private var showStickerPicker = false
     
     @State private var selectedColor: Color = Color.white
+    @State private var activeStickerId: UUID? = nil  // add this
     
     var availableStickers: [StickerContent] {
         [
@@ -90,6 +91,12 @@ struct WorkoutImageComposer: View {
             }
         }
         .navigationBarHidden(true)
+        .onChange(of: activeStickerId) { _, newId in
+            if let id = newId,
+               let sticker = stickers.first(where: { $0.id == id }) {
+                selectedColor = sticker.stickerColor
+            }
+        }
     }
 
     var composer: some View {
@@ -98,7 +105,8 @@ struct WorkoutImageComposer: View {
                       subtitle: subtitleText,
                       route: route,
                       stickers: $stickers,
-                      selectedColor: $selectedColor)
+                      selectedColor: $selectedColor,
+        activeStickerId: $activeStickerId)
         .frame(width: exportSize.width, height: exportSize.height)
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
@@ -127,9 +135,14 @@ struct WorkoutImageComposer: View {
             photoPickerButton
             stickerButton
             shareButton
-            ColorPicker("", selection: $selectedColor)
-                .labelsHidden()
-                .frame(width: 20, height: 20)
+            if activeStickerId != nil {
+                ColorPicker("", selection: $selectedColor)
+                    .labelsHidden()
+                    .frame(width: 20, height: 20)
+                    .onChange(of: selectedColor) { _, newColor in
+                        updateActiveStickerColor(newColor)
+                    }
+            }
         }
     }
 
@@ -178,14 +191,15 @@ struct WorkoutImageComposer: View {
         StickerPickerView(
             availableStickers: availableStickers,
             onSelect: { content in
-                stickers.append(StickerData(
+                let newSticker = StickerData(
                     position: CGPoint(x: exportSize.width/2, y: exportSize.height/2),
                     content: content,
-                    stickerColor: selectedColor
-                ))
+                    stickerColor: .white
+                )
+                stickers.append(newSticker)
+                activeStickerId = newSticker.id
                 showStickerPicker = false
-            },
-            stickerColor: selectedColor
+            }
         )
         .presentationDetents([.medium, .large])
         .presentationBackgroundInteraction(.disabled)
@@ -202,7 +216,7 @@ struct WorkoutImageComposer: View {
     @MainActor
     private func exportAndShare() async {
         guard backgroundImage != nil else { return }
-        let image = ShareComposer(bgImage: backgroundImage, title: titleText, subtitle: subtitleText, route: route, stickers: $stickers, selectedColor: $selectedColor).render(size: exportSize, scale: 2.0)
+        let image = ShareComposer(bgImage: backgroundImage, title: titleText, subtitle: subtitleText, route: route, stickers: $stickers, selectedColor: $selectedColor, activeStickerId: $activeStickerId).render(size: exportSize, scale: 2.0)
         sharePayload = SharePayload(items: [tempURL(for: image) as Any])
     }
     
@@ -227,5 +241,11 @@ struct WorkoutImageComposer: View {
         guard let data = image.pngData() else { return nil }
         try? data.write(to: url)
         return url
+    }
+    
+    private func updateActiveStickerColor(_ color: Color) {
+        guard let id = activeStickerId,
+              let index = stickers.firstIndex(where: { $0.id == id }) else { return }
+        stickers[index].stickerColor = color
     }
 }

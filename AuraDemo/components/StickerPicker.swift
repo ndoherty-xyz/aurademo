@@ -11,7 +11,6 @@ import SwiftUI
 struct StickerPickerView: View {
     let availableStickers: [StickerContent]
     let onSelect: (StickerContent) -> Void
-    let stickerColor: Color
     
     let columns = [
         GridItem(.flexible()),
@@ -28,7 +27,7 @@ struct StickerPickerView: View {
                         GeometryReader { geo in
                             stickerView(for: availableStickers[i], containerSize: geo.size)
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                .foregroundColor(stickerColor)
+                                .foregroundColor(.white)
                         } .frame(height: 100)
                             .frame(maxWidth: .infinity)
                             .padding(8)
