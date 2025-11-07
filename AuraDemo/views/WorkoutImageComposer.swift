@@ -44,8 +44,11 @@ struct WorkoutImageComposer: View {
         [
             .route(route),
             .stat(label: "Distance", value: String(format: "%.1f mi", workout.distanceMiles)),
-            .stat(label: "Time", value: format(duration: workout.duration)),
-            .location(locationName ?? "")
+            .stat(label: "Time", value: formatTime(duration: workout.duration)),
+            .stat(label: "Pace", value: pacePerMile(distance: workout.distanceMiles, duration: workout.duration) + "/mi"),
+            .compoundStat(workout),
+            .location(locationName ?? ""),
+            .customText(locationName.map { $0 + " - Run" } ?? "Run")
         ]
     }
     
@@ -210,7 +213,7 @@ struct WorkoutImageComposer: View {
         workout.distanceMiles > 0 ? String(format: "Run · %.1f mi", workout.distanceMiles) : "Run"
     }
     private var subtitleText: String {
-        workout.duration > 0 ? (locationName?.appending(" · ") ?? "") + format(duration: workout.duration) : "—"
+        workout.duration > 0 ? (locationName?.appending(" · ") ?? "") + formatTime(duration: workout.duration) : "—"
     }
     
     @MainActor
@@ -218,11 +221,6 @@ struct WorkoutImageComposer: View {
         guard backgroundImage != nil else { return }
         let image = ShareComposer(bgImage: backgroundImage, title: titleText, subtitle: subtitleText, route: route, stickers: $stickers, selectedColor: $selectedColor, activeStickerId: $activeStickerId).render(size: exportSize, scale: 2.0)
         sharePayload = SharePayload(items: [tempURL(for: image) as Any])
-    }
-    
-    private func format(duration: TimeInterval) -> String {
-        let m = Int(duration) / 60, s = Int(duration) % 60
-        return String(format: "%dm %02ds", m, s)
     }
     
     @MainActor

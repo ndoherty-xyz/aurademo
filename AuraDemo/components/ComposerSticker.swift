@@ -12,8 +12,8 @@ import SwiftUI
 enum StickerContent {
     case route([CLLocationCoordinate2D])
     case stat(label: String, value: String)
+    case compoundStat(RunSummary)
     case location(String)
-    case pace(String)
     case customText(String)
 }
 
@@ -33,27 +33,88 @@ struct StickerData: Identifiable {
 
 // render different types:
 @ViewBuilder
-func stickerView(for content: StickerContent, containerSize: CGSize) -> some View {
-    switch content {
-    case .route(let route):
-        let maxDim = containerSize.width / 2
-        RouteOverlay(route: route, maxDimension: maxDim)
-    case .stat(let label, let value):
-        VStack {
-            Text(label).font(.caption).opacity(0.8)
-            Text(value).font(.system(.title, design: .serif)).bold()
+func stickerView(for content: StickerContent, containerSize: CGSize, scaleToFit: Bool = false) -> some View {
+    let baseView = Group {
+        switch content {
+        case .route(let route):
+            let maxDim = containerSize.width / 2
+            RouteOverlay(route: route, maxDimension: maxDim)
+        case .stat(let label, let value):
+            VStack {
+                Text(label).font(.caption).opacity(0.8)
+                Text(value).font(.system(.title, design: .serif)).bold().italic()
+            }
+        case .compoundStat(let workout):
+            VStack(spacing: 6) {
+                VStack {
+                    Text("Distance").font(.caption).opacity(0.8)
+                    Text(String(format: "%.2f mi", workout.distanceMiles)).font(.system(.title, design: .serif)).bold().italic()
+                }
+                VStack {
+                    Text("Pace").font(.caption).opacity(0.8)
+                    Text(pacePerMile(distance: workout.distanceMiles, duration: workout.duration) + "/mi").font(.system(.title, design: .serif)).bold().italic()
+                }
+                VStack {
+                    Text("Time").font(.caption).opacity(0.8)
+                    Text(formatTime(duration: workout.duration)).font(.system(.title, design: .serif)).bold().italic()
+                }
+            }
+        case .location(let name):
+            Text(name)
+                .font(.system(.title, design: .serif)).bold().italic()
+        case .customText(let text):
+            Text(text).font(.system(.title, design: .serif)).bold().italic()
         }
-    case .location(let name):
-        Text(name)
-            .font(.system(.headline, design: .serif))
-    case .pace(let pace):
-        HStack {
-            Image(systemName: "gauge")
-            Text(pace)
+    }
+    
+    if scaleToFit {
+        ScaledStickerView(content: baseView, containerSize: containerSize)
+    } else {
+        baseView
+    }
+}
+
+
+struct ScaledStickerView<Content: View>: View {
+    let content: Content
+    let containerSize: CGSize
+    @State private var intrinsicSize: CGSize = .zero
+    
+    var body: some View {
+        content
+            .fixedSize()
+            .background(
+                GeometryReader { geo in
+                    Color.clear.preference(
+                        key: StickerSizeKey.self,
+                        value: geo.size
+                    )
+                }
+            )
+            .onPreferenceChange(StickerSizeKey.self) { size in
+                intrinsicSize = size
+            }
+            .scaleEffect(calculateScale())
+            .frame(width: containerSize.width, height: containerSize.height)
+    }
+    
+    private func calculateScale() -> CGFloat {
+        guard intrinsicSize.width > 0 && intrinsicSize.height > 0 else {
+            return 1.0
         }
-        .foregroundColor(.white)
-    case .customText(let text):
-        Text(text).foregroundColor(.white)
+        
+        let padding: CGFloat = 20
+        let scaleX = (containerSize.width - padding) / intrinsicSize.width
+        let scaleY = (containerSize.height - padding) / intrinsicSize.height
+        
+        return min(scaleX, scaleY, 1.0)
+    }
+}
+
+struct StickerSizeKey: PreferenceKey {
+    static var defaultValue: CGSize = .zero
+    static func reduce(value: inout CGSize, nextValue: () -> CGSize) {
+        value = nextValue()
     }
 }
 

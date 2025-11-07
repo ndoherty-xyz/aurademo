@@ -34,7 +34,7 @@ struct ShareComposer: View {
                                 stops: [
                                     .init(color: .black.opacity(0.35), location: 0.0),
                                     .init(color: .black.opacity(0.1), location: 0.5),
-                                    .init(color: .black.opacity(0.45), location: 1.0)
+                                    .init(color: .black.opacity(0.35), location: 1.0)
                                 ],
                                 startPoint: .top, endPoint: .bottom
                             )
@@ -69,6 +69,7 @@ struct ShareComposer: View {
                         SendSuccessHaptic()
                         stickers.removeAll { $0.id == sticker.id }
                         deletingStickerId = nil
+                        activeStickerId = nil
                     }
                     .onTapGesture {
                         activeStickerId = sticker.id

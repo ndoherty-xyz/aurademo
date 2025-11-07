@@ -25,7 +25,7 @@ struct StickerPickerView: View {
                         onSelect(availableStickers[i])
                     } label: {
                         GeometryReader { geo in
-                            stickerView(for: availableStickers[i], containerSize: geo.size)
+                            stickerView(for: availableStickers[i], containerSize: geo.size, scaleToFit: true)
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                                 .foregroundColor(.white)
                         } .frame(height: 100)
